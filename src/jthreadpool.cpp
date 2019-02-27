@@ -41,7 +41,16 @@ void JThreadPool::sleep(const int32_t millSecond)
 #endif
 }
 
-bool JThreadPool::addTask(const std::function<void()>&& task)
+int JThreadPool::currentThreadId()
+{
+#ifdef WIN32
+    return GetCurrentThreadId();
+#else
+    return gettid();
+#endif
+}
+
+bool JThreadPool::addTask(const std::function<void()> task)
 {
     taskQueueMutex_.lock();
     taskQueue_.push(task);
@@ -74,19 +83,17 @@ void JThreadPool::threadRun()
         taskQueueMutex_.lock();
         if(taskQueue_.empty()){
             taskQueueMutex_.unlock();
-            //QThread::usleep(100);
             JThreadPool::sleep(100);
             continue;
         }
-        const auto task = std::move(taskQueue_.back());
+        const auto&& task = std::move(taskQueue_.back());
         taskQueue_.pop();
         taskQueueMutex_.unlock();
         try {
             task();
         } catch (std::exception &ex) {
-            std::cout << "ThreadPool执行任务捕获到异常:" << ex.what();
+            std::cout << "ThreadPool执行任务捕获到异常 :" << ex.what()<<std::endl;
         }
-        //QThread::usleep(100);
-         JThreadPool::sleep(100);
+        JThreadPool::sleep(100);
     }
 }

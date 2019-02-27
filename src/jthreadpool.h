@@ -20,9 +20,10 @@ public:
 
 public:
     static void sleep(const int32_t millSecond);
+    static int currentThreadId();
 
 public:
-    bool addTask(const std::function<void()>&& task);
+    bool addTask(const std::function<void()> task);
 
     bool start();
 
