@@ -23,7 +23,7 @@ public:
     static int currentThreadId();
 
 public:
-    bool addTask(const std::function<void()> task);
+    bool addTask(const std::function<void()> &&task);
 
     bool start();
 

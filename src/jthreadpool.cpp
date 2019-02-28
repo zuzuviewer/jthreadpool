@@ -50,10 +50,10 @@ int JThreadPool::currentThreadId()
 #endif
 }
 
-bool JThreadPool::addTask(const std::function<void()> task)
+bool JThreadPool::addTask(const std::function<void()>&& task)
 {
     taskQueueMutex_.lock();
-    taskQueue_.push(task);
+    taskQueue_.push(std::move(task));
     taskQueueMutex_.unlock();
     return true;
 }
@@ -83,10 +83,14 @@ void JThreadPool::threadRun()
         taskQueueMutex_.lock();
         if(taskQueue_.empty()){
             taskQueueMutex_.unlock();
-            JThreadPool::sleep(100);
+            JThreadPool::sleep(10);
             continue;
         }
-        const auto&& task = std::move(taskQueue_.back());
+        /**左边变量写成引用或者右值引用都会有问题，最后一次调用都提示std::function没有可用的函数调用.
+         * 不知道什么原因（初步判断是因为RAII导致function对象里面指向的函数的指针被置空）**/
+        //const auto&& task = std::move(taskQueue_.back());
+       // const auto task = std::move(taskQueue_.back());
+        const auto task = taskQueue_.back();
         taskQueue_.pop();
         taskQueueMutex_.unlock();
         try {
@@ -94,6 +98,7 @@ void JThreadPool::threadRun()
         } catch (std::exception &ex) {
             std::cout << "ThreadPool执行任务捕获到异常 :" << ex.what()<<std::endl;
         }
-        JThreadPool::sleep(100);
+        JThreadPool::sleep(10);
     }
 }
+
