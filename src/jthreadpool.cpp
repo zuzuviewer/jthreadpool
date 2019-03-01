@@ -23,6 +23,9 @@ JThreadPool::JThreadPool(const unsigned int maxThreadCount, const int32_t curren
 
 JThreadPool::~JThreadPool()
 {
+    if(isRunning()){
+       stop();
+    }
     if(!threadGroup_.empty()){
         for(auto it = threadGroup_.begin();it != threadGroup_.end();++it){
             if(it->joinable()){
@@ -43,6 +46,7 @@ void JThreadPool::sleep(const int32_t millSecond)
 
 int JThreadPool::currentThreadId()
 {
+    //return std::this_thread::get_id();
 #ifdef WIN32
     return GetCurrentThreadId();
 #else
@@ -74,12 +78,14 @@ void JThreadPool::stop()
     isExit_ = true;
 }
 
+bool JThreadPool::isRunning() const
+{
+    return !isExit_;
+}
+
 void JThreadPool::threadRun()
 {
-    for(;;){
-        if(isExit_){
-            break;
-        }
+    while (!isExit_) {
         taskQueueMutex_.lock();
         if(taskQueue_.empty()){
             taskQueueMutex_.unlock();
