@@ -44,14 +44,14 @@ void JThreadPool::sleep(const int32_t millSecond)
 #endif
 }
 
-int JThreadPool::currentThreadId()
+std::thread::id JThreadPool::currentThreadId()
 {
-    //return std::this_thread::get_id();
-#ifdef WIN32
-    return GetCurrentThreadId();
-#else
-    return gettid();
-#endif
+	return std::this_thread::get_id();
+//#ifdef WIN32
+//	return GetCurrentThreadId();
+//#else
+//	return gettid();
+//#endif
 }
 
 bool JThreadPool::addTask(const std::function<void()>&& task)
@@ -67,6 +67,9 @@ bool JThreadPool::start()
     if(currentThreadCount_ <= 0){
         return false;
     }
+	if (currentThreadCount_ > maxThreadCount_) {
+		currentThreadCount_ = maxThreadCount_;
+	}
     for(int32_t i = 0;i < currentThreadCount_;++i){
         threadGroup_.push_back(std::thread(&JThreadPool::threadRun,this));
     }

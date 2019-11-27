@@ -7,6 +7,7 @@
 #include <mutex>
 #include <atomic>
 #include <list>
+#include "jthreadsafequeue.h"
 
 /**
  * @brief The JThreadPool class 线程池
@@ -20,7 +21,7 @@ public:
 
 public:
     static void sleep(const int32_t millSecond);
-    static int currentThreadId();
+    static std::thread::id currentThreadId();
 
 public:
     bool addTask(const std::function<void()> &&task);
@@ -29,6 +30,7 @@ public:
 
     void stop();
 
+	bool isRunning() const;
 protected:
     void threadRun();
 
