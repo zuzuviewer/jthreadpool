@@ -13,7 +13,7 @@ JThreadPool::JThreadPool():isExit_(false)
 
 }
 
-JThreadPool::JThreadPool(const unsigned int maxThreadCount, const int32_t currentThreadCount):
+JThreadPool::JThreadPool(const int32_t maxThreadCount, const int32_t currentThreadCount):
     maxThreadCount_(maxThreadCount),
     currentThreadCount_(currentThreadCount),
     isExit_(false)
@@ -54,14 +54,6 @@ std::thread::id JThreadPool::currentThreadId()
 //#endif
 }
 
-bool JThreadPool::addTask(const std::function<void()>&& task)
-{
-    taskQueueMutex_.lock();
-    taskQueue_.push(std::move(task));
-    taskQueueMutex_.unlock();
-    return true;
-}
-
 bool JThreadPool::start()
 {
     if(currentThreadCount_ <= 0){
@@ -88,26 +80,19 @@ bool JThreadPool::isRunning() const
 
 void JThreadPool::threadRun()
 {
-    while (!isExit_) {
-        taskQueueMutex_.lock();
-        if(taskQueue_.empty()){
-            taskQueueMutex_.unlock();
-            JThreadPool::sleep(10);
-            continue;
-        }
-        /**左边变量写成引用或者右值引用都会有问题，最后一次调用都提示std::function没有可用的函数调用.
-         * 不知道什么原因（初步判断是因为RAII导致function对象里面指向的函数的指针被置空）**/
-        //const auto&& task = std::move(taskQueue_.back());
-       // const auto task = std::move(taskQueue_.back());
-        const auto task = taskQueue_.back();
-        taskQueue_.pop();
-        taskQueueMutex_.unlock();
-        try {
-            task();
-        } catch (std::exception &ex) {
-            std::cout << "ThreadPool执行任务捕获到异常 :" << ex.what()<<std::endl;
-        }
-        JThreadPool::sleep(10);
-    }
+	while (!isExit_) {
+		function_wrapper func;
+		if (taskQueue_.try_pop(func)) {
+			try
+			{
+				func();
+			}
+			catch (const std::exception& ex)
+			{
+				std::cout << "ThreadPool执行任务捕获到异常 :" << ex.what() << std::endl;
+			}
+		}
+		std::this_thread::yield();
+	}
 }
 

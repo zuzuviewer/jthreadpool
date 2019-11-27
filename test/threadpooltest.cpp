@@ -1,4 +1,6 @@
 #include <iostream>
+#include <future>
+#include <vector>
 #include "jthreadpool.h"
 
 void test(){
@@ -8,11 +10,12 @@ void test(){
 int main(int argc, char *argv[])
 {
     JThreadPool threadPool(4,2);
-
+	std::vector<std::future<int>> res;
     for(int32_t i = 0;i < 1000;++i){
-        threadPool.addTask([&](){
-            std::cout<<"current thread id is "<<JThreadPool::currentThreadId()<<std::endl;
-        });
+		res.push_back(threadPool.submit([=](){
+			std::cout<<"current thread id is "<<JThreadPool::currentThreadId()<<std::endl;
+			return i;
+		}));
     }
     const bool ok = threadPool.start();
     if(!ok){
@@ -21,5 +24,8 @@ int main(int argc, char *argv[])
     }
     JThreadPool::sleep(10000);
     threadPool.stop();
+	for (auto it = res.begin(); it != res.end(); ++it) {
+		std::cout << it->get() << std::endl;
+	}
     return 0;
 }

@@ -17,14 +17,14 @@ public:
 	typedef typename _Container::reference reference;
 	typedef typename _Container::const_reference const_reference;
 
-	static_assert(is_same_v<_Ty, value_type>, "container adaptors require consistent types");
+	static_assert(std::is_same_v<_Ty, value_type>, "container adaptors require consistent types");
 public:
 	JThreadSafeQueue() {};
 	~JThreadSafeQueue() {};
 
 	void push(value_type&& value) {
 		std::lock_guard<std::mutex> lc(mu);
-		q.push(value);
+		q.push(std::move(value));
 		cv.notify_one();
 	}
 
@@ -33,15 +33,15 @@ public:
 		if (q.empty()) {
 			return false;
 		}
-		value = q.front();
+		value = std::move(q.front());
 		q.pop();
 		return true;
 	}
 
 	void wait_and_pop(value_type& value) {
 		std::unique_lock<std::mutex> lc(mu);
-		cv.wait(lc, []() {return !q.empty()});
-		value = q.front();
+		cv.wait(lc, [&]() {return !q.empty();});
+		value = std::move(q.front());
 		q.pop();
 		return;
 	}
